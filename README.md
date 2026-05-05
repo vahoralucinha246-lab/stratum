@@ -139,3 +139,8 @@ python3 stratum.py
 **Stratum 不是助手，是镜子。**  
 照见你思想的来路，也照亮你潜意识的暗流。  
 欢迎进入你的地层。
+
+## 许可证
+
+本项目采用 [GNU Affero General Public License v3.0](LICENSE)。
+这意味着你可以自由使用、修改、分发，但如果你对外提供服务，必须公开你修改后的全部源代码。
