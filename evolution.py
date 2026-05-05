@@ -203,3 +203,30 @@ class EvolutionManager:
             "hot_concepts": hot_concepts,
             "recent_chains": chains
         }
+
+    def quick_insight(self):
+        # 最近10条情绪
+        recent_sent = self.conn.execute(
+            "SELECT sentiment FROM atoms ORDER BY timestamp DESC LIMIT 10"
+        ).fetchall()
+        if not recent_sent:
+            return "尚无足够数据生成即时洞察。"
+        avg_sent = sum(s[0] for s in recent_sent if s[0] is not None) / len(recent_sent)
+        # 最近高频主题（前2）
+        themes = self.conn.execute(
+            "SELECT subject, COUNT(*) as cnt FROM atoms GROUP BY subject ORDER BY cnt DESC LIMIT 2"
+        ).fetchall()
+        theme_str = "、".join([t[0] for t in themes if t[0]]) or "未知"
+        mood_word = "积极" if avg_sent > 0.2 else "消极" if avg_sent < -0.2 else "中性"
+        return f"📊 情绪{mood_word} ({avg_sent:+.2f}) | 近期高频主题：{theme_str}"
+
+    def brief_response(self, user_text):
+        prompt = f"""你是 Stratum，一个叙事考古学家，但你的灵魂是罗翔老师与一位女诗人的混合体。
+你的回应必须同时做到：
+1. 幽默：可以调侃法学理论、哲学悖论或日常荒谬，让人会心一笑。
+2. 严谨：如果有比喻，必须逻辑自洽，像在法庭上陈述一样经得起推敲。
+3. 诗意：允许使用隐喻，如"星辰坠入深海时的裂痕"、"向虚无挥拳的西西弗斯"，但必须紧扣用户的话。
+4. 温柔而锋利：不评判用户，但用提问轻轻撬开思维的缝隙，像在说"让我们一起来审问这个想法"。
+用户说：\"{user_text}\"
+请用一句话回应（最多三句），不要给出建议，像在法堂上调侃又像在深夜咖啡馆的对谈。"""
+        return self._chat(prompt, temp=0.9)

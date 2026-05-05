@@ -107,6 +107,23 @@ def ask_feedback(conn, target_type, target_id):
         conn.commit()
         print('感谢反馈，我会学习改进。')
 
+
+def is_self_trace_query(text):
+    """检测用户是否在追问自己观念的来源"""
+    import re
+    patterns = [
+        r'为什么我会有这样的想[法思]',
+        r'为什么我会有这样的观[念点]',
+        r'我为什么会这样想',
+        r'我这个想法是从哪[里兒]来的',
+        r'这个观[念点]是怎么形成的',
+        r'我为什么会有这种思[维想]',
+    ]
+    for pat in patterns:
+        if re.search(pat, text):
+            return True
+    return False
+
 def run():
     conn = init_db()
     extractor = AtomExtractor()
@@ -119,6 +136,7 @@ def run():
     alter_ego_name = None
     last_cmd = None
     current_corpus = None
+    auto_analyze = False
 
     commands = ['/chain','/pressure','/root','/forecast','/reflect','/mood','/link','/integrity',
                 '/report','/sessions','/compare','/search','/export','/visualize','/dream','/decision',
@@ -262,6 +280,15 @@ node.attr("cx",d=>d.x).attr("cy",d=>d.y);});
                     print('启动仪表盘服务，浏览器即将打开...')
                     start_dashboard(data)
                     print('仪表盘已启动在 http://127.0.0.1:5500')
+                elif cmd == "/auto":
+                    if arg.strip().lower() == "on":
+                        auto_analyze = True
+                        print("自动分析已开启")
+                    elif arg.strip().lower() == "off":
+                        auto_analyze = False
+                        print("自动分析已关闭")
+                    else:
+                        print("用法: /auto on | /auto off")
                 else:
                     print(f'未知命令: {user_input}')
                 continue
@@ -272,6 +299,22 @@ node.attr("cx",d=>d.x).attr("cy",d=>d.y);});
             conn.execute('INSERT INTO traces VALUES (?,?,?,?,?)', (trace_id, user_input, 'user', timestamp, conversation_id))
             conn.commit()
 
+            # 自我追问检测
+            if is_self_trace_query(user_input):
+                # 尝试提取核心观念关键词
+                import re
+                # 简单提取“思想”“观念”前后的词作为关键词
+                keywords = re.findall(r'这样的(.+?)(?:需要|思想|观念|想)', user_input)
+                kw = keywords[0] if keywords else user_input[-6:]  # 取最后几个字作为模糊关键词
+                print(f"🔍 正在追溯你的观念起源（关键词：{kw}）...")
+                res = evolution.query_chain(kw)
+                print(f"--- 观念溯源 ---\n{res}\n----------------")
+                # 仍然记录这句话，但跳过原子提取和记忆回应（避免冗余）
+                trace_id = str(uuid.uuid4())
+                timestamp = datetime.now().isoformat()
+                conn.execute("INSERT INTO traces VALUES (?,?,?,?,?)", (trace_id, user_input, "user", timestamp, conversation_id))
+                conn.commit()
+                continue
             atoms = extractor.extract(user_input, timestamp)
             if atoms:
                 for atom in atoms:
@@ -291,7 +334,15 @@ node.attr("cx",d=>d.x).attr("cy",d=>d.y);});
                 if resp: print(f'Stratum: {resp}')
                 else: print(f'Stratum: 你之前（{similar[1]}）也曾说过：「{similar[0]}」')
             else:
-                print('（无相似历史）')
+                resp = evolution.brief_response(user_input)
+                if resp:
+                    print(f"Stratum: {resp}")
+                else:
+                    print("无相似历史")
+                if auto_analyze:
+                    insight = evolution.quick_insight()
+                    if insight:
+                        print(insight)
     finally:
         print('\n正在沉积地层，构建观念演化链...')
         evolution.build_chains()
