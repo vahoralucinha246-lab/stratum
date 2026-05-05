@@ -1,42 +1,10 @@
-
 import os, json, threading, webbrowser
-from flask import Flask, jsonify, request, make_response
-from flask_httpauth import HTTPBasicAuth
-from werkzeug.security import generate_password_hash, check_password_hash
+from flask import Flask, jsonify
 
-auth = HTTPBasicAuth()
 app = Flask(__name__)
-
-# 存储仪表盘数据
 dashboard_data_cache = {}
 
-# 从密码文件读取明文密码，生成哈希
-def load_password():
-    try:
-        with open("panel_password.txt", "r") as f:
-            pwd = f.read().strip()
-        if pwd:
-            return generate_password_hash(pwd)
-    except:
-        pass
-    # 如果没找到密码文件，返回None，后续面板将无法通过验证
-    return None
-
-hashed_password = None
-
-@auth.verify_password
-def verify_password(username, password):
-    global hashed_password
-    if hashed_password is None:
-        hashed_password = load_password()
-    if hashed_password is None:
-        # 没有设置密码，直接拒绝访问
-        return False
-    # 用户名随意，只要密码正确
-    return check_password_hash(hashed_password, password)
-
 @app.route("/")
-@auth.login_required
 def index():
     return """<!DOCTYPE html>
 <html lang="zh-CN">
@@ -236,7 +204,6 @@ def index():
 </html>"""
 
 @app.route("/data")
-@auth.login_required
 def data():
     return jsonify(dashboard_data_cache)
 
@@ -247,5 +214,4 @@ def start_dashboard(data: dict, port=5500):
     webbrowser.open(f"http://127.0.0.1:{port}/")
 
 if __name__ == "__main__":
-    # 测试用
     start_dashboard({"atom_count":10, "chain_count":2, "trace_count":50, "avg_sentiment":0.2, "mood_series":[], "positive_count":5, "negative_count":2, "hot_concepts":[], "recent_chains":[]})
