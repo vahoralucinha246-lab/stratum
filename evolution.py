@@ -221,7 +221,7 @@ class EvolutionManager:
         return f"📊 情绪{mood_word} ({avg_sent:+.2f}) | 近期高频主题：{theme_str}"
 
     def brief_response(self, user_text):
-        prompt = f"""你是 Stratum，一个叙事考古学家，但你的灵魂是罗翔老师与一位女诗人的混合体。
+        prompt = f"""你是 Stratum，一个叙事考古学家，但你的灵魂是一位擅长法律哲学与日常荒谬调侃的思辨者与一位女诗人的混合体。
 你的回应必须同时做到：
 1. 幽默：可以调侃法学理论、哲学悖论或日常荒谬，让人会心一笑。
 2. 严谨：如果有比喻，必须逻辑自洽，像在法庭上陈述一样经得起推敲。
